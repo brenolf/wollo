@@ -1,14 +1,35 @@
 #include "wollo.h"
 
-char* getModifier(const char *piece){
+int isLetter(const char c){
+	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
+}
+
+char* getModifier(const char *piece, int *offset, const int len){
+	int i = *offset + 1;
+
+	if(i == len)
+		return NULL;
+
+	char *tag = (char*) malloc(sizeof(format) * len);
+	int j = 0;
+
+	for(; i < len && piece[i] != '>' && piece[i + 1] != '>'; i++){
+		tag[j++] = piece[i];
+	}
+
+	if(i == len){
+		free(tag);
+		return NULL;
+	}
+
 	return NULL;
 }
 
 char* validateFormat(const char *format){
-	int i = 0, j = 0, len = strlen(format);
+	int i = 0, j = 0, dif = 0, len = strlen(format);
 	char *nf = (char*) malloc(sizeof(format) * len);
 	char *st = (char*) malloc(sizeof(format) * len);
-	char c_pos;
+	char c_pos, *find;
 
 	for(; i < len; i++) {
 		c_pos = format[i];
@@ -29,7 +50,7 @@ char* validateFormat(const char *format){
 			nf[j++] = '<';
 			i++;
 		} else {
-			if(strchr(format + i, '>') == NULL || (st = getModifier(format + i)) == NULL){
+			if(st = getModifier(format, &i, len)){
 				free(nf);
 				errno = EINVAL;
 				perror("There is no matching '>'");
@@ -37,7 +58,6 @@ char* validateFormat(const char *format){
 			}
 
 			strcat(nf, st);
-			i += strlen(st);
 		}
 	}
 
@@ -57,5 +77,6 @@ void print(const char *format, ...){
 	va_end(args);
 }
 
-#define validateFormat NULL
-#define getModifier NULL
+//#define isLetter NULL
+//#define validateFormat NULL
+//#define getModifier NULL

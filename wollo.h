@@ -7,7 +7,14 @@
 #include <stdarg.h>
 #include <errno.h>
 
-char* getModifier(const char *piece);
+const *char[] keywords = {
+	"red",
+	"green",
+	"blue"
+};
+
+int isLetter(const char c);
+char* getModifier(const char *piece, int *offset, const int len);
 char* validateFormat(const char *format);
 void print(const char *format, ...);
 
