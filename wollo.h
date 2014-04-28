@@ -6,16 +6,13 @@
 #include <string.h>
 #include <stdarg.h>
 #include <errno.h>
+#include <ctype.h>
 
-const *char[] keywords = {
-	"red",
-	"green",
-	"blue"
-};
+extern const char *colours[];
 
-int isLetter(const char c);
-char* getModifier(const char *piece, int *offset, const int len);
-char* validateFormat(const char *format);
+char* taggify(char *tag, char *index);
+char* interpret(const char *format, int len);
+int validateFormat(const char *format, char **target);
 void print(const char *format, ...);
 
 #endif
