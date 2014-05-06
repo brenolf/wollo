@@ -1,7 +1,7 @@
 Wollo
 =====
 
-Wollo is a C library that provides a fancy printf with colours. Its main goal is to ease the usage of colours resembling the HTML language.
+Wollo is a tiny C library that provides a fancy printf with colours. Its main goal is to ease the usage of colours on terminals, using a terminology resembling HTML.
 
 Compiling
 ---------
@@ -24,12 +24,12 @@ The main function of Wollo is ```print```. The ```print``` function takes a form
 * ```<m>```: magenta
 * ```<c>```: cyan
 
-All of them must be properly surrounded by closing tags just as in HTML. An example of the print is ```print("<m>magenta</m> <b>%d</b>", 1)```.
+All of them must be properly surrounded by closing tags just as in HTML. An example of the function is ```print("<m>magenta</m> <b>%d</b>", 1)```.
 
 To-do
 -----
 
-There are arguably many features left to implement. The list below list the most important of them:
+There are arguably many features left to be implemented. The list below shows the (perhaps) most important of them:
 
 * There are no checks for argument number
 * There should be better error messages
