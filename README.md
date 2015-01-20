@@ -31,6 +31,7 @@ To-do
 
 There are arguably many features left to be implemented. The list below shows the (perhaps) most important of them:
 
+* There are major flaws that should be corrected (2015 revision)
 * There are no checks for argument number
 * There should be better error messages
 * Maybe there could be more options and/or the tag names ought to be more intelligible
