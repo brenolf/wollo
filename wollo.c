@@ -1,173 +1,156 @@
 #include "wollo.h"
 
-const char *colours[] = {"", "r", "g", "y", "b", "m", "c"};
+const char *wollo_tags[][3] = {
+  { NULL,  "\e[0m", ""},
+  { "blink", "\e[5m", "\e[25m"},
+  { "dim", "\e[2m", "\e[22m"},
+  { "u", "\e[4m", "\e[24m"},
+  { "inverted", "\e[7m", "\e[27m"},
+  { "r", "\e[31m", "\e[39m"},
+  { "g", "\e[32m", "\e[39m"},
+  { "y", "\e[33m", "\e[39m"},
+  { "b", "\e[34m", "\e[39m"},
+  { "m", "\e[35m", "\e[39m"},
+  { "c", "\e[36m", "\e[39m"}
+};
 
-char* taggify(char *tag, char *index) {
-  char *new = (char*) malloc(sizeof(char) * 10);
-
-  if (tag == NULL) {
-    sprintf(new, "\x1b[m");
-    return new;
-  }
-
+int get_tag (char *tag) {
   int i;
 
-  for(i = 1; i < 7; i++) {
-    if(strcmp(colours[i], tag) == 0) {
-      sprintf(new, "\x1b[3%dm", i);
-      *index = i;
-      return new;
+  for (i = 1; i < 11; i++) {
+    if (strcmp(wollo_tags[i][0], tag) == 0) {
+      return i;
     }
   }
 
-  *index = -1;
-  return NULL;
-}
-
-char* interpret(const char *format, int len) {
-  int i = 0;
-  char* read = (char*) malloc(sizeof(char) * len);
-
-  while (format[i] != '\0' && format[i] != '>') {
-    read[i] = format[i];
-    i++;
-  }
-
-  read[i] = '\0';
-
-  if (format[i] == '\0' || i == 0)
-    return NULL;
-
-  return read;
-}
-
-int validateFormat(const char *format, char **target) {
-  char *new;
-  char *content;
-  char *tag;
-  char *reset_tag;
-  char index;
-
-  int len;
-  int init;
-  int content_len;
-  int tag_len;
-  int reset_len;
-
-  int cursor = 0, i, flag = 0;
-
-  char *stack = (char*) malloc(sizeof(char) * len);
-  int top = 0;
-
-  len = strlen(format);
-  init = len;
-  new = (char*) malloc(sizeof(char) * len);
-
-  reset_tag = taggify(NULL, NULL);
-  reset_len = strlen(reset_tag);
-
-  for(i = 0; i < init; i++) {
-    flag = 0;
-
-    if(format[i] == '<') {
-
-      if (i + 1 == len)
-        return i;
-
-      if (format[i + 1] == '<') {
-        new[cursor++] = '<';
-        i++;
-      } else {
-        if (format[i + 1] == '/') {
-          i++;
-          flag = 1;
-        }
-
-        content = interpret(format + i + 1, len);
-
-        if (content == NULL || (tag = taggify(content, &index)) == NULL) {
-          free(new);
-          return init - 1;
-        }
-
-        if (flag == 0) {
-          tag_len = strlen(tag);
-          content_len = strlen(content);
-
-          new = (char*) realloc(new, sizeof(char) * len + tag_len);
-
-          strcat(new, tag);
-
-          i += (1 + content_len);
-          len += tag_len;
-
-          stack[top++] = index;
-          cursor += tag_len;
-        } else {
-          content_len = strlen(content);
-
-          new = (char*) realloc(new, sizeof(char) * len + reset_len);
-
-          strcat(new, reset_tag);
-
-          if (stack[--top] != index)
-            return i;
-
-          i += (1 + content_len);
-          len += reset_len;
-          cursor += reset_len;
-
-          if (top > 0) {
-            free(content);
-
-            content = malloc(sizeof(char) * strlen(colours[stack[top - 1]]) + 1);
-            strcpy(content, colours[stack[top - 1]]);
-
-            if ((tag = taggify(content, &index)) == NULL) {
-              free(new);
-              return 0;
-            }
-
-            tag_len = strlen(tag);
-            content_len = strlen(content);
-
-            new = (char*) realloc(new, sizeof(char) * len + tag_len);
-
-            strcat(new, tag);
-
-            len += tag_len;
-            cursor += tag_len;
-          }
-        }
-
-        free(content);
-        free(tag);
-      }
-
-    } else
-      new[cursor++] = format[i];
-  }
-
-  new[cursor] = '\0';
-
-  if (top > 0)
-    return init - 1;
-
-  *target = new;
   return -1;
 }
 
-void print(const char *format, ...) {
-  char *new = NULL;
-  int err;
+char* tokenize (char *haystack, char **needles, int n_needles, int *chosen, char **next) {
+  if (haystack == NULL || n_needles == 0) {
+    return NULL;
+  }
 
-  if((err = validateFormat(format, &new)) >= 0) {
-    free(new);
-    fprintf(stderr, "Wrong format at position %d\n", err);
+  if (*next != NULL) {
+    haystack = *next;
+  }
+
+  if (haystack[0] == '\0') {
+    return NULL;
+  }
+
+  char *find = NULL;
+  int i, j;
+
+  for (i = 0; i < n_needles; i++) {
+    char *local = strstr(haystack, needles[i]);
+
+    if (find == NULL || (local != NULL && find > local)) {
+      j = i;
+      find = local;
+    }
+  }
+
+  if (find == NULL) {
+    *chosen = -1;
+    *next = haystack + strlen(haystack);
+  } else {
+    *chosen = j;
+    *next = find + strlen(needles[j]);
+    *find = '\0';
+  }
+
+  return haystack;
+}
+
+int interpret (const char *format, char **target) {
+  int length = strlen(format);
+
+  int *stack = malloc(sizeof(int) * (length / 3));
+  int peak = -1;
+
+  char *aux = malloc(sizeof(char) * length);
+  *target = malloc(sizeof(char) * length);
+
+  strcpy(aux, format);
+  strcpy(*target, "");
+
+  char *string;
+  char *delimiters[2] = {"<<", ">>"};
+  char *token = NULL;
+  int chosen;
+
+  char *substring;
+  char *subdelimiters[2] = {"<", ">"};
+  char *subtoken = NULL;
+  int subchosen;
+
+  int count;
+  int tag;
+
+  while ((string = tokenize(aux, delimiters, 2, &chosen, &token)) != NULL) {
+    subtoken = NULL;
+    count = 0;
+
+    while ((substring = tokenize(string, subdelimiters, 2,
+      &subchosen, &subtoken)) != NULL) {
+
+      if (count++ % 2 == 0)  {
+        strcat(*target, substring);
+      } else {
+        int closing = (substring[0] == '/');
+        tag = get_tag(substring + closing);
+
+        if (closing) {
+          if (tag == -1 || peak < 0) {
+            fprintf(stderr, "print: Invalid closing tag `%s'.\n",
+              substring + 1);
+            exit(2);
+          }
+
+          if (stack[peak] != tag) {
+            fprintf(stderr, "print: Invalid closing tag `%s', `%s' expected.\n",
+               substring + 1, wollo_tags[stack[peak]][0]);
+            exit(2);
+          }
+
+          strcat(*target, wollo_tags[tag][2]);
+
+          peak--;
+          tag = peak < 0 ? 0 : stack[peak];
+        } else if (tag == -1) {
+          fprintf(stderr, "print: Invalid tag `%s'.\n", substring);
+          exit(2);
+        } else {
+          stack[++peak] = tag;
+        }
+
+        strcat(*target, wollo_tags[tag][1]);
+      }
+    }
+
+    strcat(*target, chosen >= 0 ? delimiters[chosen] : "");
+  }
+
+  free(aux);
+
+  if (peak >= 0) {
+    fprintf(stderr, "print: Missing closing tag `%s'.\n",
+      wollo_tags[stack[peak]][0]);
     exit(2);
   }
 
+  return -1;
+}
+
+void print (const char *format, ...) {
+  char *new = NULL;
+  int err;
+
+  interpret(format, &new);
+
   va_list args;
+
   va_start(args, format);
   vprintf(new, args);
   va_end(args);
